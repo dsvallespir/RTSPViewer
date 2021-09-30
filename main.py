@@ -1,18 +1,15 @@
-# This is a sample Python script.
 
-# Press Mayús+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import cv2
 import sys
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QAction, QLabel, QGridLayout
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QAction, QLabel, QGridLayout, QWidget
+from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot, Qt, QMutex, QWaitCondition
 from PyQt5.QtGui import QImage, QPixmap
 
 user = "DNA"
 passw = "DNA2020!"
 ip = "98.173.8.28"
-port = "8830"
+port = "5200"
 stream_type = "1"
 rtsp_stream_prefix = "rtsp://" + user + ":" + passw + '@' + ip + ":" + port + "/cam/realmonitor?channel="
 rtsp_stream_suffix = "&subtype=" + stream_type
@@ -20,37 +17,42 @@ rtsp_stream_suffix = "&subtype=" + stream_type
 
 class MainWindow(QMainWindow):
     def __init__(self):
-        super(MainWindow, self).__init__()
-        #self.setupUi(self)
+        super().__init__()
+        #self.cap = cv2.VideoCapture(rtsp_stream_prefix + "1" + rtsp_stream_suffix)
+        self.ch1 = cv2.VideoCapture(rtsp_stream_prefix + "1" + rtsp_stream_suffix)
+        self.ch2 = cv2.VideoCapture(rtsp_stream_prefix + "2" + rtsp_stream_suffix)
+        self.ch3 = cv2.VideoCapture(rtsp_stream_prefix + "3" + rtsp_stream_suffix)
+        self.ch4 = cv2.VideoCapture(rtsp_stream_prefix + "4" + rtsp_stream_suffix)
 
-        self.gridLayout = QGridLayout(self)
+        self.cap = self.ch1
+        print("App configurada")
 
-
-        self.PlyWnd11 = QLabel(self)
-        self.PlyWnd12 = QLabel(self)
-        self.PlyWnd21 = QLabel(self)
-        self.PlyWnd22 = QLabel(self)
-
-        self.gridLayout.addWidget(self.PlyWnd11,1,1)
-        self.gridLayout.addWidget(self.PlyWnd12, 1, 2)
-        self.gridLayout.addWidget(self.PlyWnd21, 2, 1)
-        self.gridLayout.addWidget(self.PlyWnd22, 2, 2)
-
-        #self.setCentralWidget(self.gridLayout)
-
-        # Impresión de prueba
-        # print(rtsp_stream_prefix + "1" + rtsp_stream_suffix)
-
-        self.cap = cv2.VideoCapture()
-
-        self.cap11 = cv2.VideoCapture(rtsp_stream_prefix + "1" + rtsp_stream_suffix)
-        self.cap12 = cv2.VideoCapture(rtsp_stream_prefix + "2" + rtsp_stream_suffix)
-        self.cap21 = cv2.VideoCapture(rtsp_stream_prefix + "3" + rtsp_stream_suffix)
-        self.cap22 = cv2.VideoCapture(rtsp_stream_prefix + "4" + rtsp_stream_suffix)
-
-        i = 0
+        self.centralwidget = QWidget(self)
+        self.centralwidget.setObjectName("centralwidget")
+        self.grid = QGridLayout(self.centralwidget)
+        self.label_11 = QLabel(self)
+        self.label_12 = QLabel(self)
+        self.label_21 = QLabel(self)
+        self.label_22 = QLabel(self)
+        self.label_11.resize(320, 240)
+        self.label_12.resize(320, 240)
+        self.label_21.resize(320, 240)
+        self.label_22.resize(320, 240)
+        self.grid.addWidget(self.label_11, 0, 0)
+        self.grid.addWidget(self.label_12, 0, 1)
+        self.grid.addWidget(self.label_21, 1, 0)
+        self.grid.addWidget(self.label_22, 1, 1)
+        self.setCentralWidget(self.centralwidget)
         self.show()
-        # app.aboutToQuit.connect(self.closeEvent)
+
+        self.label_12.setText("CH 2")
+        self.label_21.setText("CH 3")
+        self.label_22.setText("CH 4")
+
+        if not self.cap.isOpened():
+            print("no se pudo abrir la cámara")
+            exit()
+
         finish = QAction("Quit", self)
         finish.triggered.connect(self.closeEvent)
 
@@ -58,32 +60,52 @@ class MainWindow(QMainWindow):
         fmenu = menubar.addMenu("File")
         fmenu.addAction(finish)
 
+
+        iterador = 0
+
         while True:
-            if i == 0:
-                self.cap = self.cap11
-                i = 1
-            elif i == 1:
-                self.cap = self.cap12
-                i = 2
-            elif i == 2:
-                self.cap = self.cap21
-                i = 3
-            elif i == 3:
-                self.cap = self.cap22
-                i = 0
+            if iterador == 0:
+                self.cap = self.ch1
+            if iterador == 1:
+                self.cap = self.ch2
+            if iterador == 2:
+                self.cap = self.ch3
+            if iterador == 3:
+                self.cap = self.ch4
+
             ret, frame = self.cap.read()
 
             if not ret:
+                print("no se pudo recibir vieo")
+                break
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            #cv2.imshow("frame", rgb)
+            convert = QImage(rgb.data, rgb.shape[1], rgb.shape[0], QImage.Format_RGB888)
+            p = convert.scaled(320, 240, Qt.IgnoreAspectRatio)
+
+            keyboard = cv2.waitKey(0)
+            if cv2.waitKey(1) == ord('q'):
+                print("Saliendo..")
                 break
 
-            self.img = QImage(frame.data, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
-            self.p = QPixmap.fromImage(self.img)
-            self.p = self.p.scaled(600, 300, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+            if iterador == 0:
+                self.label_11.setPixmap(QPixmap.fromImage(p))
+                iterador = 1
+                continue
+            if iterador == 1:
+                self.label_12.setPixmap(QPixmap.fromImage(p))
+                iterador = 2
+                continue
+            if iterador == 2:
+                self.label_21.setPixmap(QPixmap.fromImage(p))
+                iterador = 3
+                continue
+            if iterador == 3:
+                self.label_22.setPixmap(QPixmap.fromImage(p))
+                iterador = 0
 
-            if i == 0:  self.PlyWnd11.setPixmap(self.p)
-            elif i == 1: self.PlyWnd12.setPixmap(self.p)
-            elif i == 2: self.PlyWnd21.setPixmap(self.p)
-            elif i == 3: self.PlyWnd22.setPixmap(self.p)
+        self.cap.release()
+        cv2.destroyAllWindows()
 
     def closeEvent(self, event):
         print("event")
@@ -91,33 +113,16 @@ class MainWindow(QMainWindow):
                                            "Are you sure to quit?", QMessageBox.Yes, QMessageBox.No)
 
         if reply == QMessageBox.Yes:
-            event.accept()
             self.cap.release()
-            self.cap11.release()
-            self.cap12.release()
-            self.cap21.release()
-            self.cap22.release()
             cv2.destroyAllWindows()
+            print("Saliendo..")
+            event.accept()
         else:
             event.ignore()
 
-    # def keyPressEvent(self, event):
-    #    if event.key() == QtCore.Qt.Key_Q:
-    #        print("Killing")
-    #        self.deleteLater()
-    #    elif event.key() == QtCore.Qt.Key_Enter:
-    #        self.proceed()
-    #    event.accept()
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-# Press the green button in the gutter to run the script.
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     a = MainWindow()
     #a.show()
-    sys.exit(app.exec_())
+    app.exec_()
