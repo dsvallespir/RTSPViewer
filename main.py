@@ -5,25 +5,38 @@
 import cv2
 import sys
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QAction
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QAction, QLabel, QGridLayout
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QPixmap
-
-from mainUI import Ui_MainWindow
 
 user = "DNA"
 passw = "DNA2020!"
 ip = "98.173.8.28"
-port = "5200"
+port = "8830"
 stream_type = "1"
 rtsp_stream_prefix = "rtsp://" + user + ":" + passw + '@' + ip + ":" + port + "/cam/realmonitor?channel="
 rtsp_stream_suffix = "&subtype=" + stream_type
 
 
-class MyMainWindow(QMainWindow, Ui_MainWindow):
+class MainWindow(QMainWindow):
     def __init__(self):
-        super(MyMainWindow, self).__init__()
-        self.setupUi(self)
+        super(MainWindow, self).__init__()
+        #self.setupUi(self)
+
+        self.gridLayout = QGridLayout(self)
+
+
+        self.PlyWnd11 = QLabel(self)
+        self.PlyWnd12 = QLabel(self)
+        self.PlyWnd21 = QLabel(self)
+        self.PlyWnd22 = QLabel(self)
+
+        self.gridLayout.addWidget(self.PlyWnd11,1,1)
+        self.gridLayout.addWidget(self.PlyWnd12, 1, 2)
+        self.gridLayout.addWidget(self.PlyWnd21, 2, 1)
+        self.gridLayout.addWidget(self.PlyWnd22, 2, 2)
+
+        #self.setCentralWidget(self.gridLayout)
 
         # Impresión de prueba
         # print(rtsp_stream_prefix + "1" + rtsp_stream_suffix)
@@ -63,14 +76,14 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
             if not ret:
                 break
 
-            self.img = QImage(frame, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
-            self.pix = QPixmap.fromImage(self.img)
-            self.pix = self.pix.scaled(600, 300, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+            self.img = QImage(frame.data, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
+            self.p = QPixmap.fromImage(self.img)
+            self.p = self.p.scaled(600, 300, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
 
-            if i == 0:  self.PlyWnd11.setPixmap(self.pix)
-            elif i == 1: self.PlyWnd12.setPixmap(self.pix)
-            elif i == 2: self.PlyWnd21.setPixmap(self.pix)
-            elif i == 3: self.PlyWnd22.setPixmap(self.pix)
+            if i == 0:  self.PlyWnd11.setPixmap(self.p)
+            elif i == 1: self.PlyWnd12.setPixmap(self.p)
+            elif i == 2: self.PlyWnd21.setPixmap(self.p)
+            elif i == 3: self.PlyWnd22.setPixmap(self.p)
 
     def closeEvent(self, event):
         print("event")
@@ -103,14 +116,8 @@ def print_hi(name):
 
 # Press the green button in the gutter to run the script.
 
-
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
-
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    my_wnd = MyMainWindow()
-    my_wnd.show()
+    a = MainWindow()
+    #a.show()
     sys.exit(app.exec_())
