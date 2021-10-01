@@ -6,60 +6,25 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QAction, QLa
 from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot, Qt, QMutex, QWaitCondition
 from PyQt5.QtGui import QImage, QPixmap
 
-user = "DNA"
-passw = "DNA2020!"
-ip = "98.173.8.28"
-port = "5200"
-stream_type = "1"
-rtsp_stream_prefix = "rtsp://" + user + ":" + passw + '@' + ip + ":" + port + "/cam/realmonitor?channel="
-rtsp_stream_suffix = "&subtype=" + stream_type
-
+from dialog import MyDialog
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         #self.cap = cv2.VideoCapture(rtsp_stream_prefix + "1" + rtsp_stream_suffix)
-        self.ch1 = cv2.VideoCapture(rtsp_stream_prefix + "1" + rtsp_stream_suffix)
-        self.ch2 = cv2.VideoCapture(rtsp_stream_prefix + "2" + rtsp_stream_suffix)
-        self.ch3 = cv2.VideoCapture(rtsp_stream_prefix + "3" + rtsp_stream_suffix)
-        self.ch4 = cv2.VideoCapture(rtsp_stream_prefix + "4" + rtsp_stream_suffix)
+
+        self.dlg = MyDialog()
+        self.dlg.exec_()
+        self.login()
+        self.initUI()
+        self.menu()
 
         self.cap = self.ch1
         print("App configurada")
 
-        self.centralwidget = QWidget(self)
-        self.centralwidget.setObjectName("centralwidget")
-        self.grid = QGridLayout(self.centralwidget)
-        self.label_11 = QLabel(self)
-        self.label_12 = QLabel(self)
-        self.label_21 = QLabel(self)
-        self.label_22 = QLabel(self)
-        self.label_11.resize(320, 240)
-        self.label_12.resize(320, 240)
-        self.label_21.resize(320, 240)
-        self.label_22.resize(320, 240)
-        self.grid.addWidget(self.label_11, 0, 0)
-        self.grid.addWidget(self.label_12, 0, 1)
-        self.grid.addWidget(self.label_21, 1, 0)
-        self.grid.addWidget(self.label_22, 1, 1)
-        self.setCentralWidget(self.centralwidget)
-        self.show()
-
-        self.label_12.setText("CH 2")
-        self.label_21.setText("CH 3")
-        self.label_22.setText("CH 4")
-
         if not self.cap.isOpened():
             print("no se pudo abrir la cámara")
             exit()
-
-        finish = QAction("Quit", self)
-        finish.triggered.connect(self.closeEvent)
-
-        menubar = self.menuBar()
-        fmenu = menubar.addMenu("File")
-        fmenu.addAction(finish)
-
 
         iterador = 0
 
@@ -114,12 +79,69 @@ class MainWindow(QMainWindow):
 
         if reply == QMessageBox.Yes:
             self.cap.release()
+            self.ch1.release()
+            self.ch2.release()
+            self.ch3.release()
+            self.ch4.release()
             cv2.destroyAllWindows()
             print("Saliendo..")
+            self.dlg.destroy()
+            exit(0)
             event.accept()
         else:
             event.ignore()
 
+    def login(self):
+
+        user = self.dlg.get_user()
+        passw = self.dlg.get_pass()
+        ip = self.dlg.get_ip()
+        port = self.dlg.get_port()
+        stream_type = self.dlg.get_stream()
+        #stream_type = "1"
+
+        rtsp_stream_prefix = "rtsp://" + user + ":" + passw + '@' + ip + ":" + port + "/cam/realmonitor?channel="
+        rtsp_stream_suffix = "&subtype=" + stream_type
+
+        #print(rtsp_stream_prefix + "1" + rtsp_stream_suffix))
+        self.ch1 = cv2.VideoCapture(rtsp_stream_prefix + "1" + rtsp_stream_suffix)
+        self.ch2 = cv2.VideoCapture(rtsp_stream_prefix + "2" + rtsp_stream_suffix)
+        self.ch3 = cv2.VideoCapture(rtsp_stream_prefix + "3" + rtsp_stream_suffix)
+        self.ch4 = cv2.VideoCapture(rtsp_stream_prefix + "4" + rtsp_stream_suffix)
+
+    def initUI(self):
+        self.centralwidget = QWidget(self)
+        self.centralwidget.setObjectName("centralwidget")
+        self.grid = QGridLayout(self.centralwidget)
+        self.label_11 = QLabel(self)
+        self.label_12 = QLabel(self)
+        self.label_21 = QLabel(self)
+        self.label_22 = QLabel(self)
+        self.label_11.resize(320, 240)
+        self.label_12.resize(320, 240)
+        self.label_21.resize(320, 240)
+        self.label_22.resize(320, 240)
+        self.grid.addWidget(self.label_11, 0, 0)
+        self.grid.addWidget(self.label_12, 0, 1)
+        self.grid.addWidget(self.label_21, 1, 0)
+        self.grid.addWidget(self.label_22, 1, 1)
+        self.setCentralWidget(self.centralwidget)
+        self.show()
+
+    def menu(self):
+        quit_ = QAction("Quit", self)
+        quit_.triggered.connect(self.closeEvent)
+
+        about_ = QAction("About", self)
+        about_.triggered.connect(self.about_event)
+
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu("File")
+        file_menu.addAction(quit_)
+        file_menu.addAction(about_)
+
+    def about_event(self):
+        QMessageBox.about(self, "About RTSPViewer", "Sebastián Vallespir 2021")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
